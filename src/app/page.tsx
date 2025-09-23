@@ -22,22 +22,6 @@ export default function Home() {
   const [isModalClosing, setIsModalClosing] = useState(false);
   const [editingTerm, setEditingTerm] = useState<Term | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-      } else {
-        // Create new term
-  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [errors, setErrors] = useState<{ title?: string; content?: string; tags?: string }>({});
 
   useEffect(() => {
@@ -147,7 +131,6 @@ export default function Home() {
         });
         const newTerm = await res.json();
         setTerms([newTerm, ...terms]);
-      }
       }
       closeModal();
     } catch (error) {
