@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Tag, BookOpen, Sparkles, X } from "lucide-react";
+import { Search, Plus, Tag, BookOpen, Sparkles, X, Edit2, Trash2 } from "lucide-react";
 
 interface Term {
   id: number;
@@ -20,6 +20,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
+  const [editingTerm, setEditingTerm] = useState<Term | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [errors, setErrors] = useState<{ title?: string; content?: string; tags?: string }>({});
 
   useEffect(() => {
@@ -52,11 +54,21 @@ export default function Home() {
   function openModal() {
     setIsModalOpen(true);
     setIsModalClosing(false);
-    // Reset form when opening
-    setTitle("");
-    setContent("");
-    setTags("");
+    // Reset form when opening for new term
+    if (!editingTerm) {
+      setTitle("");
+      setContent("");
+      setTags("");
+    }
     setErrors({});
+  }
+
+  function openEditModal(term: Term) {
+    setEditingTerm(term);
+    setTitle(term.title);
+    setContent(term.content);
+    setTags(term.tags.map(tag => tag.name).join(", "));
+    openModal();
   }
 
   function closeModal() {
@@ -64,6 +76,7 @@ export default function Home() {
     setTimeout(() => {
       setIsModalOpen(false);
       setIsModalClosing(false);
+      setEditingTerm(null);
     }, 300); // Match animation duration
   }
 
@@ -92,22 +105,50 @@ export default function Home() {
     
     setIsLoading(true);
     try {
-      const res = await fetch("/api/terms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          content: content.trim(),
-          tags: tags.split(",").map(t => t.trim()).filter(t => t)
-        })
-      });
-      const newTerm = await res.json();
-      setTerms([newTerm, ...terms]);
+      if (editingTerm) {
+        // Update existing term
+        const res = await fetch(`/api/terms/${editingTerm.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            content: content.trim(),
+            tags: tags.split(",").map(t => t.trim()).filter(t => t)
+          })
+        });
+        const updatedTerm = await res.json();
+        setTerms(terms.map(t => t.id === editingTerm.id ? updatedTerm : t));
+      } else {
+        // Create new term
+        const res = await fetch("/api/terms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            content: content.trim(),
+            tags: tags.split(",").map(t => t.trim()).filter(t => t)
+          })
+        });
+        const newTerm = await res.json();
+        setTerms([newTerm, ...terms]);
+      }
       closeModal();
     } catch (error) {
       console.error("Error adding term:", error);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function deleteTerm(id: number) {
+    try {
+      await fetch(`/api/terms/${id}`, {
+        method: "DELETE"
+      });
+      setTerms(terms.filter(t => t.id !== id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error("Error deleting term:", error);
     }
   }
 
@@ -137,7 +178,10 @@ export default function Home() {
         {/* Add Term Button */}
         <div className="text-center mb-8">
           <button
-            onClick={openModal}
+            onClick={() => {
+              setEditingTerm(null);
+              openModal();
+            }}
             className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
           >
             <Plus className="w-5 h-5" />
@@ -169,9 +213,25 @@ export default function Home() {
             filtered.map(term => (
               <div key={term.id} className="bg-white rounded-2xl shadow-lg p-6 border border-purple-50 hover:shadow-xl transition-all duration-200 hover:border-purple-200">
                 <div className="flex items-start justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-800 flex-1">{term.title}</h2>
-                  <div className="text-sm text-gray-400">
-                    {new Date(term.createdAt).toLocaleDateString('es-ES')}
+                  <h2 className="text-xl font-bold text-gray-800 flex-1 mr-4">{term.title}</h2>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-gray-400 mr-2">
+                      {new Date(term.createdAt).toLocaleDateString('es-ES')}
+                    </div>
+                    <button
+                      onClick={() => openEditModal(term)}
+                      className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
+                      title="Editar término"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(term.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                      title="Eliminar término"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 
@@ -224,8 +284,8 @@ export default function Home() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-                <Plus className="w-6 h-6 text-purple-600" />
-                Agregar Nuevo Término
+                {editingTerm ? <Edit2 className="w-6 h-6 text-purple-600" /> : <Plus className="w-6 h-6 text-purple-600" />}
+                {editingTerm ? "Editar Término" : "Agregar Nuevo Término"}
               </h2>
               <button
                 onClick={closeModal}
@@ -311,15 +371,53 @@ export default function Home() {
                 {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Guardando...
+                    {editingTerm ? "Actualizando..." : "Guardando..."}
                   </>
                 ) : (
                   <>
-                    <Plus className="w-5 h-5" />
-                    Guardar Término
+                    {editingTerm ? <Edit2 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                    {editingTerm ? "Actualizar Término" : "Guardar Término"}
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slideIn"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-red-100 rounded-full">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">Eliminar Término</h3>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                ¿Estás seguro de que quieres eliminar este término? Esta acción no se puede deshacer.
+              </p>
+              
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => deleteTerm(deleteConfirm)}
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200"
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
           </div>
         </div>
