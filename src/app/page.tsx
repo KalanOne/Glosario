@@ -19,6 +19,7 @@ export default function Home() {
   const [tags, setTags] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalClosing, setIsModalClosing] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; content?: string; tags?: string }>({});
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function Home() {
 
   function openModal() {
     setIsModalOpen(true);
+    setIsModalClosing(false);
     // Reset form when opening
     setTitle("");
     setContent("");
@@ -58,7 +60,11 @@ export default function Home() {
   }
 
   function closeModal() {
-    setIsModalOpen(false);
+    setIsModalClosing(true);
+    setTimeout(() => {
+      setIsModalOpen(false);
+      setIsModalClosing(false);
+    }, 300); // Match animation duration
   }
 
   function validateForm() {
@@ -203,12 +209,16 @@ export default function Home() {
       {/* Modal Overlay */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-fadeIn"
+          className={`fixed inset-0 flex items-center justify-center p-4 z-50 ${
+            isModalClosing ? 'animate-fadeOut' : 'animate-fadeIn'
+          }`}
           onClick={closeModal}
         >
           {/* Modal Content */}
           <div 
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-slideIn"
+            className={`bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto ${
+              isModalClosing ? 'animate-slideOut' : 'animate-slideIn'
+            }`}
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -321,6 +331,11 @@ export default function Home() {
           to { opacity: 1; }
         }
         
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        
         @keyframes slideIn {
           from { 
             opacity: 0;
@@ -332,12 +347,31 @@ export default function Home() {
           }
         }
         
+        @keyframes slideOut {
+          from { 
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          to { 
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+          }
+        }
+        
         .animate-fadeIn {
           animation: fadeIn 0.2s ease-out;
         }
         
+        .animate-fadeOut {
+          animation: fadeOut 0.3s ease-out;
+        }
+        
         .animate-slideIn {
           animation: slideIn 0.3s ease-out;
+        }
+        
+        .animate-slideOut {
+          animation: slideOut 0.3s ease-out;
         }
       `}</style>
     </div>
