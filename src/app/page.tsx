@@ -203,7 +203,7 @@ export default function Home() {
       {/* Modal Overlay */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fadeIn"
+          className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-fadeIn"
           onClick={closeModal}
         >
           {/* Modal Content */}
