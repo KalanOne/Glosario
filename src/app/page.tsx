@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Tag, BookOpen, Sparkles } from "lucide-react";
+import { Search, Plus, Tag, BookOpen, Sparkles, X } from "lucide-react";
 
 interface Term {
   id: number;
@@ -18,6 +18,7 @@ export default function Home() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; content?: string; tags?: string }>({});
 
   useEffect(() => {
@@ -25,6 +26,40 @@ export default function Home() {
       .then(res => res.json())
       .then(setTerms);
   }, []);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isModalOpen) {
+        closeModal();
+      }
+    };
+    
+    if (isModalOpen) {
+      document.addEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isModalOpen]);
+
+  function openModal() {
+    setIsModalOpen(true);
+    // Reset form when opening
+    setTitle("");
+    setContent("");
+    setTags("");
+    setErrors({});
+  }
+
+  function closeModal() {
+    setIsModalOpen(false);
+  }
 
   function validateForm() {
     const newErrors: { title?: string; content?: string; tags?: string } = {};
@@ -62,10 +97,7 @@ export default function Home() {
       });
       const newTerm = await res.json();
       setTerms([newTerm, ...terms]);
-      setTitle(""); 
-      setContent(""); 
-      setTags("");
-      setErrors({});
+      closeModal();
     } catch (error) {
       console.error("Error adding term:", error);
     } finally {
@@ -81,7 +113,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className={`container mx-auto px-4 py-8 max-w-4xl transition-all duration-300 ${isModalOpen ? 'blur-sm' : ''}`}>
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -96,87 +128,15 @@ export default function Home() {
           <p className="text-gray-600 text-lg">Organiza y encuentra tus términos favoritos</p>
         </div>
 
-        {/* Add Term Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-purple-100">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <Plus className="w-6 h-6 text-purple-600" />
+        {/* Add Term Button */}
+        <div className="text-center mb-8">
+          <button
+            onClick={openModal}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+          >
+            <Plus className="w-5 h-5" />
             Agregar Nuevo Término
-          </h2>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Título *
-              </label>
-              <input
-                value={title}
-                onChange={e => {
-                  setTitle(e.target.value);
-                  if (errors.title) setErrors({...errors, title: undefined});
-                }}
-                placeholder="Ingresa el título del término"
-                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                  errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
-                }`}
-              />
-              {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Definición *
-              </label>
-              <textarea
-                value={content}
-                onChange={e => {
-                  setContent(e.target.value);
-                  if (errors.content) setErrors({...errors, content: undefined});
-                }}
-                placeholder="Escribe la definición del término"
-                rows={4}
-                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${
-                  errors.content ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
-                }`}
-              />
-              {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Etiquetas * (separadas por comas)
-              </label>
-              <input
-                value={tags}
-                onChange={e => {
-                  setTags(e.target.value);
-                  if (errors.tags) setErrors({...errors, tags: undefined});
-                }}
-                placeholder="javascript, programación, web"
-                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                  errors.tags ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
-                }`}
-              />
-              {errors.tags && <p className="text-red-500 text-sm mt-1">{errors.tags}</p>}
-            </div>
-
-            <button 
-              onClick={addTerm}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-5 h-5" />
-                  Guardar Término
-                </>
-              )}
-            </button>
-          </div>
+          </button>
         </div>
 
         {/* Search */}
@@ -239,6 +199,147 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Modal Overlay */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fadeIn"
+          onClick={closeModal}
+        >
+          {/* Modal Content */}
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-slideIn"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+                <Plus className="w-6 h-6 text-purple-600" />
+                Agregar Nuevo Término
+              </h2>
+              <button
+                onClick={closeModal}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título *
+                  </label>
+                  <input
+                    value={title}
+                    onChange={e => {
+                      setTitle(e.target.value);
+                      if (errors.title) setErrors({...errors, title: undefined});
+                    }}
+                    placeholder="Ingresa el título del término"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                      errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
+                    }`}
+                  />
+                  {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Definición *
+                  </label>
+                  <textarea
+                    value={content}
+                    onChange={e => {
+                      setContent(e.target.value);
+                      if (errors.content) setErrors({...errors, content: undefined});
+                    }}
+                    placeholder="Escribe la definición del término"
+                    rows={4}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${
+                      errors.content ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
+                    }`}
+                  />
+                  {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Etiquetas * (separadas por comas)
+                  </label>
+                  <input
+                    value={tags}
+                    onChange={e => {
+                      setTags(e.target.value);
+                      if (errors.tags) setErrors({...errors, tags: undefined});
+                    }}
+                    placeholder="javascript, programación, web"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
+                      errors.tags ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
+                    }`}
+                  />
+                  {errors.tags && <p className="text-red-500 text-sm mt-1">{errors.tags}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100">
+              <button
+                onClick={closeModal}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={addTerm}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5" />
+                    Guardar Término
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+          from { 
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+        
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
