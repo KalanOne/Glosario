@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Tag, BookOpen, Sparkles, X, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, Tag, BookOpen, Sparkles, X, Edit2, Trash2, ChevronUp, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Term {
   id: number;
@@ -9,6 +9,11 @@ interface Term {
   content: string;
   tags: { id: number; name: string }[];
   createdAt: string;
+}
+
+interface FilterOptions {
+  searchType: 'all' | 'title' | 'content' | 'tags';
+  sortBy: 'newest' | 'oldest' | 'title';
 }
 
 export default function Home() {
@@ -23,11 +28,29 @@ export default function Home() {
   const [editingTerm, setEditingTerm] = useState<Term | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [errors, setErrors] = useState<{ title?: string; content?: string; tags?: string }>({});
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    searchType: 'all',
+    sortBy: 'newest'
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(6);
 
   useEffect(() => {
     fetch("/api/terms")
       .then(res => res.json())
       .then(setTerms);
+  }, []);
+
+  // Handle scroll to show/hide scroll-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Handle ESC key to close modal
@@ -50,6 +73,10 @@ export default function Home() {
       document.body.style.overflow = 'unset';
     };
   }, [isModalOpen]);
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   function openModal() {
     setIsModalOpen(true);
@@ -154,11 +181,75 @@ export default function Home() {
     }
   }
 
-  const filtered = terms.filter(t =>
-    t.title.toLowerCase().includes(search.toLowerCase()) ||
-    t.content.toLowerCase().includes(search.toLowerCase()) ||
-    t.tags.some((tag: any) => tag.name.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Advanced filtering and sorting
+  const getFilteredAndSortedTerms = () => {
+    let filtered = terms;
+
+    // Apply search filter
+    if (search.trim()) {
+      const searchLower = search.toLowerCase();
+      filtered = terms.filter(t => {
+        switch (filterOptions.searchType) {
+          case 'title':
+            return t.title.toLowerCase().includes(searchLower);
+          case 'content':
+            return t.content.toLowerCase().includes(searchLower);
+          case 'tags':
+            return t.tags.some(tag => tag.name.toLowerCase().includes(searchLower));
+          case 'all':
+          default:
+            return t.title.toLowerCase().includes(searchLower) ||
+                   t.content.toLowerCase().includes(searchLower) ||
+                   t.tags.some(tag => tag.name.toLowerCase().includes(searchLower));
+        }
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (filterOptions.sortBy) {
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'title':
+          return a.title.localeCompare(b.title);
+        case 'newest':
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+
+    return filtered;
+  };
+
+  const filteredTerms = getFilteredAndSortedTerms();
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredTerms.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentTerms = filteredTerms.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterOptions]);
+
+  const getSearchTypeLabel = (type: string) => {
+    switch (type) {
+      case 'title': return 'Títulos';
+      case 'content': return 'Definiciones';
+      case 'tags': return 'Etiquetas';
+      default: return 'Todo';
+    }
+  };
+
+  const getSortLabel = (sort: string) => {
+    switch (sort) {
+      case 'oldest': return 'Más antiguos';
+      case 'title': return 'Alfabético';
+      default: return 'Más recientes';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white">
@@ -191,28 +282,121 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-8">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar términos, definiciones o etiquetas..."
-            className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-300 transition-all bg-white shadow-sm"
-          />
+        {/* Search and Filters */}
+        <div className="mb-8 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={`Buscar en ${getSearchTypeLabel(filterOptions.searchType).toLowerCase()}...`}
+              className="w-full pl-12 pr-16 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-300 transition-all bg-white shadow-sm"
+            />
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-all duration-200 ${
+                showFilters ? 'bg-purple-100 text-purple-600' : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'
+              }`}
+            >
+              <Filter className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Advanced Filters */}
+          {showFilters && (
+            <div className="bg-white rounded-xl border-2 border-gray-100 p-6 shadow-sm animate-slideIn">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Buscar en:
+                  </label>
+                  <select
+                    value={filterOptions.searchType}
+                    onChange={e => setFilterOptions({
+                      ...filterOptions,
+                      searchType: e.target.value as FilterOptions['searchType']
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-300"
+                  >
+                    <option value="all">Todo</option>
+                    <option value="title">Solo títulos</option>
+                    <option value="content">Solo definiciones</option>
+                    <option value="tags">Solo etiquetas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ordenar por:
+                  </label>
+                  <select
+                    value={filterOptions.sortBy}
+                    onChange={e => setFilterOptions({
+                      ...filterOptions,
+                      sortBy: e.target.value as FilterOptions['sortBy']
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-300"
+                  >
+                    <option value="newest">Más recientes</option>
+                    <option value="oldest">Más antiguos</option>
+                    <option value="title">Alfabético</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Filter Summary */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+                  <Search className="w-3 h-3" />
+                  {getSearchTypeLabel(filterOptions.searchType)}
+                </span>
+                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
+                  <Filter className="w-3 h-3" />
+                  {getSortLabel(filterOptions.sortBy)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* Results Summary */}
+        {filteredTerms.length > 0 && (
+          <div className="mb-6 flex items-center justify-between">
+            <p className="text-gray-600">
+              Mostrando {startIndex + 1}-{Math.min(endIndex, filteredTerms.length)} de {filteredTerms.length} término{filteredTerms.length !== 1 ? 's' : ''}
+              {search && ` para "${search}"`}
+            </p>
+            {totalPages > 1 && (
+              <p className="text-sm text-gray-500">
+                Página {currentPage} de {totalPages}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Terms List */}
-        <div className="space-y-6">
-          {filtered.length === 0 ? (
+        <div className="space-y-6 mb-8">
+          {currentTerms.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">
                 {search ? "No se encontraron términos" : "No hay términos aún. ¡Agrega el primero!"}
               </p>
+              {search && (
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setFilterOptions({ searchType: 'all', sortBy: 'newest' });
+                  }}
+                  className="mt-4 text-purple-600 hover:text-purple-800 font-medium"
+                >
+                  Limpiar filtros
+                </button>
+              )}
             </div>
           ) : (
-            filtered.map(term => (
+            currentTerms.map(term => (
               <div key={term.id} className="bg-white rounded-2xl shadow-lg p-6 border border-purple-50 hover:shadow-xl transition-all duration-200 hover:border-purple-200">
                 <div className="flex items-start justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-800 flex-1 mr-4">{term.title}</h2>
@@ -255,9 +439,48 @@ export default function Home() {
           )}
         </div>
 
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Anterior
+            </button>
+
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-2 rounded-lg transition-all ${
+                    page === currentPage
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-600 bg-white border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Siguiente
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Stats */}
         {terms.length > 0 && (
-          <div className="mt-12 text-center">
+          <div className="text-center">
             <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full">
               <Sparkles className="w-4 h-4" />
               <span className="font-medium">
@@ -267,6 +490,17 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-110 z-40"
+          title="Subir arriba"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Modal Overlay */}
       {isModalOpen && (
