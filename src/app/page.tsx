@@ -37,14 +37,14 @@ export default function Home() {
         closeModal();
       }
     };
-    
+
     if (isModalOpen) {
       document.addEventListener('keydown', handleEsc);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = 'unset';
@@ -68,7 +68,9 @@ export default function Home() {
     setTitle(term.title);
     setContent(term.content);
     setTags(term.tags.map(tag => tag.name).join(", "));
-    openModal();
+    setIsModalOpen(true);
+    setIsModalClosing(false);
+    setErrors({});
   }
 
   function closeModal() {
@@ -82,27 +84,27 @@ export default function Home() {
 
   function validateForm() {
     const newErrors: { title?: string; content?: string; tags?: string } = {};
-    
+
     if (!title.trim()) {
       newErrors.title = "El título es requerido";
     }
-    
+
     if (!content.trim()) {
       newErrors.content = "La definición es requerida";
     }
-    
+
     const tagList = tags.split(",").map(t => t.trim()).filter(t => t);
     if (tagList.length === 0) {
       newErrors.tags = "Al menos una etiqueta es requerida";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
 
   async function addTerm() {
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
     try {
       if (editingTerm) {
@@ -234,9 +236,9 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
-                
+
                 <p className="text-gray-600 mb-4 leading-relaxed">{term.content}</p>
-                
+
                 <div className="flex flex-wrap gap-2">
                   {term.tags.map((tag: any) => (
                     <span
@@ -268,17 +270,15 @@ export default function Home() {
 
       {/* Modal Overlay */}
       {isModalOpen && (
-        <div 
-          className={`fixed inset-0 flex items-center justify-center p-4 z-50 ${
-            isModalClosing ? 'animate-fadeOut' : 'animate-fadeIn'
-          }`}
+        <div
+          className={`fixed inset-0 flex items-center justify-center p-4 z-50 ${isModalClosing ? 'animate-fadeOut' : 'animate-fadeIn'
+            }`}
           onClick={closeModal}
         >
           {/* Modal Content */}
-          <div 
-            className={`bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto ${
-              isModalClosing ? 'animate-slideOut' : 'animate-slideIn'
-            }`}
+          <div
+            className={`bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto ${isModalClosing ? 'animate-slideOut' : 'animate-slideIn'
+              }`}
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -306,12 +306,11 @@ export default function Home() {
                     value={title}
                     onChange={e => {
                       setTitle(e.target.value);
-                      if (errors.title) setErrors({...errors, title: undefined});
+                      if (errors.title) setErrors({ ...errors, title: undefined });
                     }}
                     placeholder="Ingresa el título del término"
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                      errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
+                      }`}
                   />
                   {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
                 </div>
@@ -324,13 +323,12 @@ export default function Home() {
                     value={content}
                     onChange={e => {
                       setContent(e.target.value);
-                      if (errors.content) setErrors({...errors, content: undefined});
+                      if (errors.content) setErrors({ ...errors, content: undefined });
                     }}
                     placeholder="Escribe la definición del término"
                     rows={4}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${
-                      errors.content ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none ${errors.content ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
+                      }`}
                   />
                   {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
                 </div>
@@ -343,12 +341,11 @@ export default function Home() {
                     value={tags}
                     onChange={e => {
                       setTags(e.target.value);
-                      if (errors.tags) setErrors({...errors, tags: undefined});
+                      if (errors.tags) setErrors({ ...errors, tags: undefined });
                     }}
                     placeholder="javascript, programación, web"
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${
-                      errors.tags ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${errors.tags ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-purple-300'
+                      }`}
                   />
                   {errors.tags && <p className="text-red-500 text-sm mt-1">{errors.tags}</p>}
                 </div>
@@ -363,7 +360,7 @@ export default function Home() {
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={addTerm}
                 disabled={isLoading}
                 className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
@@ -388,7 +385,7 @@ export default function Home() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div 
+          <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slideIn"
             onClick={e => e.stopPropagation()}
           >
@@ -399,11 +396,11 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-800">Eliminar Término</h3>
               </div>
-              
+
               <p className="text-gray-600 mb-6">
                 ¿Estás seguro de que quieres eliminar este término? Esta acción no se puede deshacer.
               </p>
-              
+
               <div className="flex items-center justify-end gap-3">
                 <button
                   onClick={() => setDeleteConfirm(null)}
