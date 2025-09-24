@@ -272,10 +272,8 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para
 
 **Alan Gardy** - [@KalanOne](https://github.com/KalanOne)
 
-- 🌐 Website: [Tu sitio web]
-- 📧 Email: [tu-email@ejemplo.com]
-- 🐦 Twitter: [@tu_usuario]
-- 💼 LinkedIn: [Tu perfil de LinkedIn]
+- 🌐 Website: [www.alangardy.com](https://www.alangardy.com)
+- 📧 Email: alangarciadiazgardy@gmail.com
 
 ---
 
